@@ -1,34 +1,66 @@
-`timescale 1ns/1ps   // sets simulation time unit and precision
+`timescale 1ns/1ps
 
-module tb;
-    reg a, b, c;         // testbench drives these (inputs to DUT)
-    wire s, co;           // output from DUT
+module tb_full_adder_32;
 
-    // Instantiate the module under test (DUT)
-    FU_ADDER dut (
+    reg  [31:0] a, b;
+    reg         cin;
+    wire [31:0] sum;
+    wire        cout;
+
+    // Instantiate DUT
+    ADD dut (
         .a(a),
         .b(b),
-        .c(c),
-        .sum(s),
-        .carry(co)
+        .carry_in(cin),
+        .sum(sum),
+        .carry_out(cout)
     );
 
-    initial begin
-        $display("Time\t a b c| s co");
-        $display("----------------");
-        // Apply all input combinations
-        a = 0; b = 0; c = 0; #10;
-        $display("%0t\t %b %b %b| %b %b", $time, a, b, c, s, co);
+    // Check task
 
-        a = 0; b = 1; #10;
-        $display("%0t\t %b %b %b| %b %b", $time, a, b, c, s, co);
-
-        a = 1; b = 0; #10;
-        $display("%0t\t %b %b %b| %b %b", $time, a, b, c, s, co);
-
-        a = 1; b = 1; #10;
-        $display("%0t\t %b %b %b| %b %b", $time, a, b, c, s, co);
-
-        $finish;  // end simulation
+    task check;
+        input [31:0] ta, tb;
+        input        tcin;
+        reg   [32:0] expected;
+    begin
+        // Drive the DUT inputs
+        a   = ta;
+        b   = tb;
+        cin = tcin;
+        #1; // wait for ripple adder to settle
+        expected = ta + tb + tcin;
+        if ({cout, sum} !== expected) begin
+            $display("❌ FAIL: a=%h b=%h cin=%b | expected=%h got=%h", 
+                      ta, tb, tcin, expected, {cout,sum});
+        end else begin
+            $display("✔ PASS: a=%h b=%h cin=%b | result=%h", 
+                      ta, tb, tcin, {cout,sum});
+        end
     end
+    endtask
+    integer i;
+
+    initial begin
+        $display("Starting 32-bit full adder test...");
+
+        // ---- Directed tests ----
+        check(32'h00000000, 32'h00000000, 0);
+        check(32'hFFFFFFFF, 32'h00000001, 0);
+        check(32'h7FFFFFFF, 32'h00000001, 0);
+        check(32'hFFFFFFFF, 32'hFFFFFFFF, 1);
+
+        // ---- Random tests ----
+        for (i = 0; i < 20; i = i + 1) begin
+            a   = $random;
+            b   = $random;
+            cin = $random % 2;
+            #1;
+            check(a, b, cin);
+        end
+
+        $display("Test complete.");
+        $finish;
+    end
+
 endmodule
+
