@@ -25,7 +25,7 @@ module ADD(
         for(i=0; i < 32; i=i+1) begin : adder_ripple
             FU_ADDER FA(
                 .a(a[i]),
-                .b(b[i]),
+                .b(b[i] ^ carry_in),
                 .c(carry[i]),
                 .sum(sum[i]),
                 .carry(carry[i+1])
@@ -33,38 +33,6 @@ module ADD(
         end
     endgenerate
     assign carry_out = carry[32];
-endmodule
-
-///////////////////////////////////////////////////////////////////////////// Logic unit.
-module NOT(
-    input [31:0]a,
-    output [31:0] not_a
-);
-    assign not_a[i] = ~a[i];
-endmodule
-
-module XOR(
-    input [31:0]a,
-    input [31:0]b,
-    output [31:0]c
-);
-    assign c = a ^ b;
-endmodule
-
-module AND(
-    input [31:0]a,
-    input [31:0]b,
-    output [31:0]c
-);
-    assign c = a ^ b;
-endmodule
-
-module OR(
-    input [31:0]a,
-    input [31:0]b,
-    output [31:0]c
-);
-    assign c = a ^ b;
 endmodule
 
 ///////////////////////////////////////////////////////////////////////////// 32 bit Shifter.
