@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////// Full adder 1 bit.
+////////////////////////////////////////////////////////////////////////////// Full adder 1 bit.
 module FU_ADDER(
     input a,
     input b,
@@ -10,7 +10,7 @@ module FU_ADDER(
     assign carry = (a & b) | (b & c) | (c & a);
 endmodule
 
-///////////////////////////////////////////////////////////////////////////// 32 bit adder.
+//////////////////////////////////////////////////////////////////////////// 32 bit adder.
 module ADD(
     input [31:0]a,
     input [31:0]b,
@@ -68,10 +68,22 @@ module OR(
 endmodule
 
 ///////////////////////////////////////////////////////////////////////////// 32 bit Shifter.
-module Shifter (
+module SHIFT (
     input [31:0]a,
     input [4:0]shift,
+    input direction,
     output[31:0]out
 );
+    case (direction)
+        0       : assign out = a << shift;
+        default : assign out = a >> shift;
+    endcase
 endmodule
+
+///////////////////////////////////////////////////////////////////////////// 32 bit Comparator.
+module COMPARE (
+    input [31:0]a,
+    input [31:0]b,
+    output [1:0]result
+);
 endmodule
