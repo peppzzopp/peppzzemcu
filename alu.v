@@ -81,9 +81,38 @@ module SHIFT (
 endmodule
 
 ///////////////////////////////////////////////////////////////////////////// 32 bit Comparator.
-module COMPARE (
-    input [31:0]a,
-    input [31:0]b,
-    output [1:0]result
+module COMPARE(
+    input  [31:0] a,
+    input  [31:0] b,
+    output        equal,
+    output        greater,
+    output        lesser
 );
+    wire [31:0] bit_equal;
+    wire [31:0] bit_greater;
+    wire [31:0] bit_lesser;
+
+    genvar i;
+    generate
+        for (i = 0; i < 32; i = i + 1) begin : COMPARE_BITS
+            assign bit_equal[i]   = (a[i] == b[i]);
+            assign bit_greater[i] = (a[i] == 1'b1 && b[i] == 1'b0);
+            assign bit_lesser[i]  = (a[i] == 1'b0 && b[i] == 1'b1);
+        end
+    endgenerate
+
+    assign equal = &bit_equal;
+
+    wire [31:0] prefix_equal;
+
+    assign prefix_equal[31] = 1'b1;
+    generate
+        for (i = 30; i >= 0; i = i - 1) begin : PREFIX
+            assign prefix_equal[i] = prefix_equal[i+1] & bit_equal[i+1];
+        end
+    endgenerate
+
+    assign greater = |(bit_greater & prefix_equal);
+    assign lesser  = |(bit_lesser  & prefix_equal);
+
 endmodule
