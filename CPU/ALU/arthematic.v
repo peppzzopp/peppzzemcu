@@ -21,7 +21,7 @@ module ADD(
     wire [32:0] carry;
     assign carry[0] = carry_in;
     genvar i;
-    generate 
+    generate
         for(i=0; i < 32; i=i+1) begin : adder_ripple
             FU_ADDER FA(
                 .a(a[i]),
