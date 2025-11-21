@@ -1,4 +1,4 @@
-module alu(
+module ALU(
     input wire [31:0] operand_1,
     input wire [31:0] operand_2,
     input wire is_sub,shift_direction, operation,
