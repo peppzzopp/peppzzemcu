@@ -1,4 +1,4 @@
-module regfile(
+module REGFILE(
     input wire clk,rst,reg_write,
     input wire [4:0] rs1,rs2,rsd,
     input wire [31:0] write_data,

@@ -4,5 +4,6 @@
 ### To-do :
 - [ ] Complete a functional core.
 - [ ] Add pipelining.
+- [ ] Add M, Zicsr, C extensions support.
 - [ ] Out of Order.
 - [ ] Multicore.

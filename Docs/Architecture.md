@@ -7,5 +7,5 @@
 
 # Core Architecture.
 ```mermaid
-    info
+
 ```
