@@ -4,3 +4,8 @@
 - Shifter.
 - Comparator.
 - Multiplexer.
+
+# Core Architecture.
+```mermaid
+
+```
