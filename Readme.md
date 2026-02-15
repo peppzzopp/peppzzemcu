@@ -1,9 +1,6 @@
-# PEPPZZEEPEEYUU
-- A RISC-V based CPU based on RV32I instruction set.
+A risc-V cpu implementation.
 
-### To-do :
-- [ ] Complete a functional core.
-- [ ] Add pipelining.
-- [ ] Add M, Zicsr, C extensions support.
-- [ ] Out of Order.
-- [ ] Multicore.
+### Timeline:
+-   Single cycle CPU.
+-   Bring up with a bootloader on an FPGA.
+-   5 stage pipelined processor.
