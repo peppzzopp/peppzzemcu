@@ -6,7 +6,7 @@ module tb;
     wire [31:0]debug_instruction;
     wire [32*32 - 1:0]debug_register_interface;
     wire [31:0]debug_program_counter;
-
+    wire [31:0]debug_memory_output;
     core core_1(
         .clock(clock),
         .reset(reset),
@@ -41,7 +41,7 @@ module tb;
     
         repeat (2) @(posedge clock);
         reset = 0;
-        #100;
+        #500;
         $finish;
     end
 endmodule

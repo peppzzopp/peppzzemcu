@@ -98,10 +98,12 @@ module dmem(
 
     reg [31:0]ram [0:1023];
     integer i;
+    
     always@(posedge clock)begin
         if(reset)begin
-            for(i=0;i<1024;i=i+1)
+            for(i=0;i<1024;i=i+1)begin
                 ram[i] <= 32'b0;
+            end
         end
         else if(memory_write) begin
             ram[memory_address[11:2]] <= input_data;
@@ -111,21 +113,19 @@ module dmem(
 endmodule
 
 module imem(
-    input clock,
     input [31:0]instruction_address,
-    output reg [31:0]instruction
+    output [31:0]instruction
 );
     reg [31:0]instruction_memory [0:255];
     integer i; 
     initial begin
-        for(i=0;i<255;i=i+1)
+        for(i=0;i<255;i=i+1)begin
             instruction_memory[i] = 32'b0;
+        end
         $readmemh("instruction_stream.hex",instruction_memory);
     end
-
-    always@(posedge clock)begin
-        instruction <= instruction_memory[instruction_address[9:2]];
-    end
+    
+    assign instruction = instruction_memory[instruction_address[9:2]];
 endmodule
 
 module decoder(
@@ -206,12 +206,12 @@ module core(
         .clock(clock),
         .reset(reset),
         .memory_write(memory_write),
+        .memory_address(memory_address),
         .input_data(memory_input_data),
         .output_data(memory_output_data)
     );
     
     imem instruction_memory(
-        .clock(clock),
         .instruction_address(pc_output),
         .instruction(instruction)
     );
@@ -249,6 +249,7 @@ module core(
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
                         write_data = alu_output;
+                        memory_write = 1'b0;
                         pc_input = pc_output + 4;
                     end
                     3'b010:begin
@@ -259,6 +260,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = (read_output_1[31]^immediate[31]) ? {{31{1'b0}},read_output_1[31]} : {{31{1'b0}},~carry_out};
                         pc_input = pc_output + 4;
                     end
@@ -270,6 +272,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = {{31{1'b0}},~carry_out};
                         pc_input = pc_output + 4;
                     end
@@ -281,6 +284,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = read_output_1^immediate;
                         pc_input = pc_output + 4;
                     end
@@ -292,6 +296,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = read_output_1|immediate;
                         pc_input = pc_output + 4;
                     end
@@ -303,6 +308,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = read_output_1&immediate;
                         pc_input = pc_output + 4;
                     end
@@ -314,6 +320,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b0;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = pc_output + 4;
                     end
@@ -325,6 +332,7 @@ module core(
                         direction = 1'b1;
                         a_or_s = 1'b0;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = pc_output + 4;
                     end
@@ -340,6 +348,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = pc_output + 4;
                     end
@@ -351,6 +360,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = (read_output_1[31]^read_output_2[31]) ? {{31{1'b0}},read_output_1[31]} : {{31{1'b0}},~carry_out};
                         pc_input = pc_output + 4;
                     end
@@ -362,6 +372,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = {{31{1'b0}},~carry_out};
                         pc_input = pc_output + 4;
                     end
@@ -373,6 +384,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = read_output_1^read_output_2;
                         pc_input = pc_output + 4;
                     end
@@ -384,6 +396,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = read_output_1|read_output_2;
                         pc_input = pc_output + 4;
                     end
@@ -395,6 +408,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = read_output_1&read_output_2;
                         pc_input = pc_output + 4;
                     end
@@ -406,6 +420,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b0;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = pc_output + 4;
                     end
@@ -417,6 +432,7 @@ module core(
                         direction = 1'b1;
                         a_or_s = 1'b0;
                         write_enable = 1'b1;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = pc_output + 4;
                     end
@@ -430,6 +446,7 @@ module core(
                 direction = 1'b0;
                 a_or_s = 1'b1;
                 write_enable = 1'b1;
+                memory_write = 1'b0;
                 write_data = pc_output + 4;
                 pc_input = pc_output + immediate;
             end
@@ -441,6 +458,7 @@ module core(
                 direction = 1'b0;
                 a_or_s = 1'b1;
                 write_enable = 1'b1;
+                memory_write = 1'b0;
                 write_data = pc_output + 4;
                 pc_input = read_output_1 + immediate;
             end
@@ -454,6 +472,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b0;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = (alu_output == 32'b0) ? pc_output + immediate : pc_output + 4;
                     end
@@ -465,6 +484,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b0;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = (alu_output == 32'b0) ? pc_output + 4 : pc_output + immediate;
                     end
@@ -476,6 +496,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b0;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = (read_output_1[31]^read_output_2[31]) ? ((read_output_1[31]) ? (pc_output + immediate) : (pc_output + 4)) : ((carry_out) ? (pc_output + 4) : (pc_output + immediate));
                     end
@@ -487,6 +508,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b0;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = (read_output_1[31]^read_output_2[31]) ? ((read_output_1[31]) ? (pc_output + 4) : (pc_output + immediate)) : ((carry_out) ? (pc_output + immediate) : (pc_output + 4));
                     end
@@ -498,6 +520,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b0;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = (carry_out) ? (pc_output + 4) : (pc_output + immediate);
                     end
@@ -509,6 +532,7 @@ module core(
                         direction = 1'b0;
                         a_or_s = 1'b1;
                         write_enable = 1'b0;
+                        memory_write = 1'b0;
                         write_data = alu_output;
                         pc_input = (carry_out) ? (pc_output + immediate) : (pc_output + 4);
                     end
@@ -654,6 +678,19 @@ module core(
             end
             7'b0001111,
             7'b1110011:begin
+                pc_input = pc_output + 4;
+            end
+            default: begin
+                input_1 = read_output_1;
+                input_2 = read_output_2;
+                carry_in = 1'b0;
+                shamt = 5'b0;
+                direction = 1'b0;
+                a_or_s = 1'b1;
+                memory_write = 1'b0;
+                memory_address = immediate;
+                write_enable = 1'b0;
+                write_data = immediate + pc_output;
                 pc_input = pc_output + 4;
             end
         endcase
