@@ -81,7 +81,7 @@ module program_counter(
     reg [31:0]program_address;
 
     always@(posedge clock)begin
-        if(reset) program_address <= 32'b0;
+        if(reset) program_address <= 32'h80000000;
         else program_address <= pc_input;
     end
     assign pc_output = program_address;
@@ -119,13 +119,13 @@ module imem(
     reg [31:0]instruction_memory [0:255];
     integer i; 
     initial begin
-        for(i=0;i<255;i=i+1)begin
+        for(i=0;i<256;i=i+1)begin
             instruction_memory[i] = 32'b0;
         end
         $readmemh("instruction_stream.hex",instruction_memory);
     end
     
-    assign instruction = instruction_memory[instruction_address[9:2]];
+    assign instruction = instruction_memory[(instruction_address - 32'h80000000) >> 2];
 endmodule
 
 module decoder(
