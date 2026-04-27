@@ -3,20 +3,22 @@
 module tb;
     reg clk;
     reg rst;
-    wire [32*32 -1:0]registers;
-    wire [31:0]program_counter;
-    wire [31:0]instruction;
-    core dut(
-        .clock(clk),
-        .reset(rst),
-        .debug_register_interface(registers),
-        .debug_program_counter(program_counter),
-        .debug_instruction(instruction)
-    );
-    always #5 clk = ~clk;
 
+    system dut(
+        .clock(clk),
+        .reset(rst)
+    );
+
+    always #5 clk = ~clk;
+    reg [31:0]instruction_address;
+    reg [31:0]instruction;
+    
     always@(posedge clk)begin
-        $display("0x%08h 0x%08h", program_counter, instruction);
+        if(dut.core_unit.control_unit.state == 3'b000) instruction_address <= dut.core_unit.imem_address;
+        if(dut.core_unit.control_unit.state == 3'b001) instruction <= dut.core_unit.instruction;
+        if(dut.core_unit.control_unit.state == 3'b010) begin
+            $display("0x%08h 0x%08h", instruction_address, instruction);
+        end
     end
 
     initial begin
@@ -24,10 +26,13 @@ module tb;
         $dumpvars(0, tb);
         clk = 0;
         rst = 1;
+        instruction_address = 32'h00000000;
+        instruction = 32'h00000000;
 
-        repeat (2) @(posedge clk);
+        repeat (4) @(posedge clk);
         rst = 0;
-        #500;
+        
+        #10000; 
         $finish;
     end
 

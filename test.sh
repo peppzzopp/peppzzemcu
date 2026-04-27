@@ -5,7 +5,7 @@ LOGS_DIR=testing/logs/core/
 SPIKE_DIR=testing/logs/spike/
 
 echo "Testing the Core:"
-iverilog -o sim.out gs_tb.v design.v
+iverilog -o system.vvp -I src/core sim/testbenches/gs_tb.v src/core/alu.v src/core/core.v src/core/decoder.v src/core/lsu.v src/core/core_registers.v src/core/control_registers.v src/memory/memory.v src/system.v src/core/control.v
 
 # generate DUT logs
 find "$STREAMS_DIR" -name "*.hex" | while read -r specific_stream; do
@@ -13,12 +13,12 @@ find "$STREAMS_DIR" -name "*.hex" | while read -r specific_stream; do
 
     cp "$specific_stream" instruction_stream.hex
 
-    vvp sim.out | awk '
+    vvp system.vvp | awk '
     /^0x80000000 / { start=1 }
     start && /^0x[0-9a-f]+ 0x[0-9a-f]+$/ && $2 != "0xxxxxxxxx" {
         print
     }
-    ' | tail -n +2 > "$LOGS_DIR/$one_stream.log"
+    ' > "$LOGS_DIR/$one_stream.log"
 done
 
 # compare with spike
@@ -43,4 +43,4 @@ for specific_log in "$LOGS_DIR"/*.log; do
     fi
 done
 
-rm instruction_stream.hex sim.out wave.vcd
+rm instruction_stream.hex system.vvp wave.vcd

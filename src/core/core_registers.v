@@ -31,23 +31,18 @@ module program_counter#(
 )(
     input reset,
     input clock,
-    input load,
+    input write_enable,
     input [31:0]pc_data,
-    output [31:0]pc_output,
-    output [31:0]pc_plus_4
+    output [31:0]pc_output
 );
     reg [31:0]program_address;
 
     always@(posedge clock)begin
-        $display("PC_SAMPLE @%0t: pc=%h load=%b pc_data=%h",
-            $time, program_address, load, pc_data);
         if(reset) program_address <= RESET_ADDR;
         else begin
-            if(load) program_address <= pc_data;
-            else program_address <= program_address + pc_data;
+            if(write_enable) program_address <= pc_data;
         end
     end
     assign pc_output = program_address;
-    assign pc_plus_4 = program_address + 4;
 endmodule
 

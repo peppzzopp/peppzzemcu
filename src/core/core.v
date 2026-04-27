@@ -16,18 +16,87 @@ module core(
     input [31:0]dmem_read_data
 );
     
-    /*Data Memory*/
-    reg [31:0]memory_address;
-    reg memory_we;
+    wire ir_write; wire pc_write; wire reg_write; wire mem_write; wire ret_write;
+    wire [1:0]alu_src_a; wire [1:0]alu_src_b; wire [3:0]alu_op; wire [1:0]reg_src;
+    wire [6:0]opcode; wire [2:0]func3; wire [6:0]func7; wire pc_src;
+    reg alu_con;
+    control control_unit(
+        .clock(clock),
+        .reset(reset),
+        .opcode(opcode),
+        .func3(func3),
+        .func7(func7),
+        .alu_con(alu_con),
+        .ir_write(ir_write),
+        .pc_write(pc_write),
+        .reg_write(reg_write),
+        .mem_write(mem_write),
+        .ret_write(ret_write),
+        .alu_src_a(alu_src_a),
+        .alu_src_b(alu_src_b),
+        .alu_op(alu_op),
+        .reg_src(reg_src),
+        .pc_src(pc_src)
+    );
     
-    assign dmem_address = memory_address;
-    assign dmem_write_enable = memory_we;
+    wire [31:0]alu_output; 
+    reg [31:0]alu_input_1; reg [31:0]alu_input_2;
+    alu alu_unit(
+        .input_1(alu_input_1),
+        .input_2(alu_input_2),
+        .alu_op(alu_op),
+        .alu_output(alu_output)
+    );
 
-    /*Decoder*/
-    wire [6:0]opcode; wire [2:0]func3; wire [6:0]func7;
-    wire [4:0]rs1; wire [4:0]rs2; wire [4:0]rsd; wire [31:0]immediate;
-    decoder decoder_unit(
-        .instruction(imem_data),
+    reg [31:0]pc_input;
+    program_counter pc_unit(
+        .reset(reset),
+        .clock(clock),
+        .write_enable(pc_write),
+        .pc_data(pc_input),
+        .pc_output(imem_address)
+    );
+    
+    wire [31:0]instruction;
+    control_register ir(
+        .clock(clock),
+        .reset(reset),
+        .write_enable(ir_write),
+        .input_data(imem_data),
+        .output_data(instruction)
+    );
+    
+    wire [31:0]alu_regout;
+    control_register alu_out(
+        .clock(clock),
+        .reset(reset),
+        .write_enable(1'b1),
+        .input_data(alu_output),
+        .output_data(alu_regout)
+    );
+    
+    wire [31:0]register_in;
+    control_register reg_in(
+        .clock(clock),
+        .reset(reset),
+        .write_enable(1'b1),
+        .input_data(imem_address),
+        .output_data(register_in)
+    );
+    
+    wire [31:0]ret_addr_output;
+    control_register ret_addr(
+        .clock(clock),
+        .reset(reset),
+        .write_enable(ret_write),
+        .input_data(imem_address),
+        .output_data(ret_addr_output)
+    );
+    
+    wire [4:0]rs1; wire [4:0]rs2; wire [4:0]rsd;
+    wire [31:0]immediate;
+    decoder decode_unit(
+        .instruction(instruction),
         .opcode(opcode),
         .rs1(rs1),
         .rs2(rs2),
@@ -37,25 +106,12 @@ module core(
         .immediate(immediate)
     );
     
-    /*Program Counter*/
-    reg [31:0]pc_data; reg pc_load;
-    wire [31:0]pc_plus_4;
-    program_counter pc_unit(
-        .reset(reset),
-        .clock(clock),
-        .load(pc_load),
-        .pc_data(pc_data),
-        .pc_output(imem_address),
-        .pc_plus_4(pc_plus_4)
-    );
-    
-    /*Core Registers*/
-    reg register_we; reg [31:0] register_write_data;
+    reg [31:0]register_write_data;
     wire [31:0]register_r1; wire [31:0]register_r2;
     regfile register_unit(
         .reset(reset),
         .clock(clock),
-        .write_enable(register_we),
+        .write_enable(reg_write),
         .read_1(rs1),
         .read_2(rs2),
         .write(rsd),
@@ -64,21 +120,10 @@ module core(
         .read_output_2(register_r2)
     );
 
-    /*`ALU*/
-    reg [31:0]alu_input_1; reg [31:0]alu_input_2; reg [3:0]alu_op;
-    wire [31:0]alu_output;
-    alu alu_unit(
-        .input_1(alu_input_1),
-        .input_2(alu_input_2),
-        .alu_op(alu_op),
-        .alu_output(alu_output)
-    );
-    
-    /*LSU*/
-    reg [1:0]lsu_byte_offset; reg [1:0]lsu_type; reg load_sign;
+    reg [1:0]lsu_type; reg load_sign;
     wire [31:0]load_data;
     lsu lsu_unit(
-        .byte_offset(lsu_byte_offset),
+        .byte_offset(alu_regout[1:0]),
         .lsu_type(lsu_type),
         .memory_input(dmem_read_data),
         .sign(load_sign),
@@ -88,184 +133,33 @@ module core(
         .store_data(dmem_write_data)
     );
 
+    assign dmem_write_enable = mem_write;
+    assign dmem_address = alu_regout;
     always@(*)begin
-        /*Default signals*/
-        pc_load = 1'b0;
-        pc_data = 4;
-
-        alu_input_1 = register_r1;
-        alu_input_2 = register_r2;
-        alu_op = 4'b0000;
-
-        lsu_byte_offset = 2'b00;
-        lsu_type = 2'b00;
-        load_sign = 1'b0;
-        
-        register_we = 1'b0;
-        register_write_data = 32'h00000000;
-
-        memory_we = 1'b0;
-        memory_address = 32'h00000000;
-
-        case(opcode)
-            `OP_IMMEDIATE:begin
-                alu_input_2 = immediate;
-                register_we = 1'b1;
-                register_write_data = alu_output;
-                case(func3)
-                    3'b000:begin
-                        alu_op = `ALU_ADD;
-                    end
-                    3'b010:begin
-                        alu_op = `ALU_SLT;
-                    end
-                    3'b011:begin
-                        alu_op = `ALU_SLTU;
-                    end
-                    3'b100:begin
-                        alu_op = `ALU_XOR;
-                    end
-                    3'b110:begin
-                        alu_op = `ALU_OR;
-                    end
-                    3'b111:begin
-                        alu_op = `ALU_AND;
-                    end
-                    3'b001:begin
-                        alu_op = `ALU_SLL;
-                    end
-                    3'b101:begin
-                        alu_op = immediate[10] ? `ALU_SRA : `ALU_SRL;
-                    end
-                endcase
-            end
-            `OP_REGISTER:begin
-                alu_input_2 = register_r2;
-                register_we = 1'b1;
-                register_write_data = alu_output;
-                case(func3)
-                    3'b000: alu_op = func7[5] ? `ALU_SUB : `ALU_ADD;
-                    3'b001: alu_op = `ALU_SLL;
-                    3'b010: alu_op = `ALU_SLT;
-                    3'b011: alu_op = `ALU_SLTU;
-                    3'b100: alu_op = `ALU_XOR;
-                    3'b101: alu_op = func7[5] ? `ALU_SRA : `ALU_SRL;
-                    3'b110: alu_op = `ALU_OR;
-                    3'b111: alu_op = `ALU_AND;
-                endcase
-            end
-            `OP_JAL:begin
-                register_we = 1'b1;
-                register_write_data = pc_plus_4;
-                pc_data = immediate;
-            end
-            `OP_JALR:begin
-                alu_input_2 = immediate;
-                alu_op = `ALU_ADD;
-                register_we = 1'b1;
-                register_write_data = pc_plus_4;
-                pc_load = 1'b1;
-                pc_data = {alu_output[31:1], 1'b0};
-            end
-            `OP_BRANCH:begin
-                case(func3)
-                    3'b000:begin
-                        alu_op = `ALU_XOR;
-                        pc_data = (|alu_output) ? 4 : immediate;
-                    end
-                    3'b001:begin
-                        alu_op = `ALU_XOR;
-                        pc_data = (|alu_output) ? immediate : 4;
-                    end
-                    3'b100:begin
-                        alu_op = `ALU_SLT;
-                        pc_data = (alu_output[0]) ? immediate : 4;
-                    end
-                    3'b101:begin
-                        alu_op = `ALU_SLT;
-                        pc_data = (alu_output[0]) ? 4 : immediate;
-                    end
-                    3'b110:begin
-                        alu_op = `ALU_SLTU;
-                        pc_data = (alu_output[0]) ? immediate : 4;
-                    end
-                    3'b111:begin
-                        alu_op = `ALU_SLTU;
-                        pc_data = (alu_output[0]) ? 4 : immediate;
-                    end
-                endcase
-            end
-            `OP_LOAD:begin
-                alu_input_2 = immediate;
-                alu_op = `ALU_ADD;
-                memory_address = {alu_output[31:2], 2'b00};
-                lsu_byte_offset = alu_output[1:0];
-                register_we = 1'b1;
-                register_write_data = load_data;
-                case(func3)
-                    3'b000: begin
-                        lsu_type = 2'b10;
-                        load_sign = 1'b1;
-                    end
-                    3'b001: begin
-                        lsu_type = 2'b01;
-                        load_sign = 1'b1;
-                    end
-                    3'b010: begin
-                        lsu_type = 2'b00;
-                        load_sign = 1'b1;
-                    end
-                    3'b100: begin
-                        lsu_type = 2'b10;
-                        load_sign = 1'b0;
-                    end
-                    3'b101: begin
-                        lsu_type = 2'b01;
-                        load_sign = 1'b0;
-                    end
-                endcase
-            end
-            `OP_STORE:begin
-                alu_input_2 = immediate;
-                alu_op = `ALU_ADD;
-                memory_address = {alu_output[31:2], 2'b00};
-                lsu_byte_offset = alu_output[1:0];
-                memory_we = 1'b1;
-                case(func3)
-                    3'b000: lsu_type = 2'b10;
-                    3'b001: lsu_type = 2'b01;
-                    3'b010: lsu_type = 2'b00;
-                endcase
-            end
-            `OP_LUI:begin
-                register_we = 1'b1;
-                register_write_data = immediate;
-            end
-            `OP_AUIPC:begin
-                alu_input_1 = imem_address;
-                alu_input_2 = immediate;
-                alu_op = `ALU_ADD;
-                register_we = 1'b1;
-                register_write_data = alu_output;
-            end
-            default:begin
-                pc_load = 1'b0;
-                pc_data = 4;
-
-                alu_input_1 = register_r1;
-                alu_input_2 = register_r2;
-                alu_op = 4'b0000;
-
-                lsu_byte_offset = 2'b00;
-                lsu_type = 2'b00;
-                load_sign = 1'b0;
-                
-                register_we = 1'b0;
-                register_write_data = 32'h00000000;
-
-                memory_we = 1'b0;
-                memory_address = 32'h00000000;
-            end
+        pc_input = (pc_src) ? alu_regout : alu_output;
+        alu_con = |(alu_output);
+        case(alu_src_a)
+            2'b01: alu_input_1 = imem_address;
+            2'b10: alu_input_1 = ret_addr_output;
+            default: alu_input_1 = register_r1;
+        endcase
+        case(reg_src)
+            2'b00: register_write_data = alu_regout;
+            2'b01: register_write_data = load_data;
+            2'b10: register_write_data = register_in;
+            2'b11: register_write_data = immediate;
+        endcase
+        case(alu_src_b)
+            2'b01: alu_input_2 = immediate;
+            2'b10: alu_input_2 = 32'h00000004;
+            default: alu_input_2 = register_r2;
+        endcase
+        load_sign = ~func3[2];
+        case(func3[1:0])
+            2'b00: lsu_type = 2'b10;
+            2'b01: lsu_type = 2'b01;
+            2'b10: lsu_type = 2'b00;
+            2'b11: lsu_type = 2'b00;
         endcase
     end
 endmodule
