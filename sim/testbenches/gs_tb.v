@@ -6,7 +6,7 @@ module tb;
 
     system dut(
         .clock(clk),
-        .reset(rst)
+        .reset(~rst)
     );
 
     always #5 clk = ~clk;

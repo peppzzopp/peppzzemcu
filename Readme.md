@@ -1,6 +1,6 @@
-A risc-V cpu implementation.
+An implementation of RV32I instruction set with support for some previleged features.
 
-### Timeline:
--   Single cycle CPU.
--   Bring up with a bootloader on an FPGA.
--   5 stage pipelined processor.
+## Current features:
+- Multi cycle core.
+- AXI4-Lite handshake protocol for memory and peripheral access.
+- A testing framework to test against spike isa simulator.

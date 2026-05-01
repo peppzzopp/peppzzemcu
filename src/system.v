@@ -102,10 +102,9 @@ module system(
         .slave2_rready(slave2_rready)
     );
 
-
     axi_master master(
         .clock(clock),
-        .reset(reset),
+        .reset(~reset),
         .waddr(master_waddr),
         .wavalid(master_wavalid),
         .waready(master_waready),
@@ -127,7 +126,7 @@ module system(
     
     memory#(.MEM_SIZE(32'h00000400), .IS_ROM(1), .BASE_ADDR(32'h80000000)) rom(
         .clock(clock),
-        .reset(reset),
+        .reset(~reset),
         .waddr(slave0_waddr),
         .wavalid(slave0_wavalid),
         .waready(slave0_waready),
@@ -149,7 +148,7 @@ module system(
     
     memory#(.MEM_SIZE(32'h00002000), .IS_ROM(0), .BASE_ADDR(32'h20000000)) ram(
         .clock(clock),
-        .reset(reset),
+        .reset(~reset),
         .waddr(slave1_waddr),
         .wavalid(slave1_wavalid),
         .waready(slave1_waready),
@@ -171,7 +170,7 @@ module system(
 
     gpio led_unit(
         .clock(clock),
-        .reset(reset),
+        .reset(~reset),
         .waddr(slave2_waddr),
         .wavalid(slave2_wavalid),
         .waready(slave2_waready),
