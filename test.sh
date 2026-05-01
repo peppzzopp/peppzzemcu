@@ -5,7 +5,7 @@ LOGS_DIR=testing/logs/core/
 SPIKE_DIR=testing/logs/spike/
 
 echo "Testing the Core:"
-iverilog -o system.vvp -I src/core sim/testbenches/gs_tb.v src/core/alu.v src/core/core.v src/core/decoder.v src/core/lsu.v src/core/core_registers.v src/core/control_registers.v src/memory/memory.v src/system.v src/core/control.v
+iverilog -o system.vvp -I src/core sim/testbenches/gs_tb.v src/core/alu.v src/core/core.v src/core/decoder.v src/core/lsu.v src/core/core_registers.v src/core/control_registers.v src/memory/memory.v src/system.v src/core/control.v src/bus/axi4_lite.v src/core/axi_master.v src/peripherals/gpio.v
 
 # generate DUT logs
 find "$STREAMS_DIR" -name "*.hex" | while read -r specific_stream; do

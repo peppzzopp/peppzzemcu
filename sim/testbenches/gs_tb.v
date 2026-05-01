@@ -14,9 +14,9 @@ module tb;
     reg [31:0]instruction;
     
     always@(posedge clk)begin
-        if(dut.core_unit.control_unit.state == 3'b000) instruction_address <= dut.core_unit.imem_address;
-        if(dut.core_unit.control_unit.state == 3'b001) instruction <= dut.core_unit.instruction;
-        if(dut.core_unit.control_unit.state == 3'b010) begin
+        if(dut.master.core_unit.control_unit.state == 3'b000) instruction_address <= dut.master.core_unit.imem_address;
+        if(dut.master.core_unit.control_unit.state == 3'b001) instruction <= dut.master.core_unit.instruction;
+        if(dut.master.core_unit.control_unit.state == 3'b010) begin
             $display("0x%08h 0x%08h", instruction_address, instruction);
         end
     end

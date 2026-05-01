@@ -3,7 +3,8 @@ ENTRY(_start)
 
 MEMORY
 {
-    RAM (rwx) : ORIGIN = 0x80000000, LENGTH = 128K
+    ROM (rx)  : ORIGIN = 0x80000000, LENGTH = 4K
+    RAM (rwx) : ORIGIN = 0x20000000, LENGTH = 250K
 }
 
 SECTIONS
@@ -12,21 +13,24 @@ SECTIONS
     {
         *(.text)
         *(.text.*)
-    } > RAM
+    } > ROM
 
     .rodata : ALIGN(4)
     {
         *(.rodata*)
-    } > RAM
+        *(.srodata*)
+    } > ROM
 
     .data : ALIGN(4)
     {
         *(.data*)
+        *(.sdata*)
     } > RAM
 
     .bss : ALIGN(4)
     {
         *(.bss*)
+        *(.sbss*)
         *(COMMON)
     } > RAM
 }

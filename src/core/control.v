@@ -3,6 +3,7 @@
 module control(
     input clock,
     input reset,
+    input stall,
     input [6:0]opcode,
     input [2:0]func3,
     input [6:0]func7,
@@ -18,7 +19,9 @@ module control(
     output reg [1:0]alu_src_b,
     output reg [3:0]alu_op,
     output reg [1:0]reg_src,
-    output reg pc_src
+    output reg pc_src,
+    output reg in_fetch,
+    output reg in_memory
 );
 
     parameter FETCH = 3'b000, DECODE = 3'b001, EXECUTE = 3'b010, MEMORY = 3'b011, WRITEBACK = 3'b100;
@@ -26,7 +29,9 @@ module control(
 
     always @(posedge clock) begin
         if (reset) state <= FETCH;
-        else state <= next_state;
+        else begin
+            if(!stall) state <= next_state;
+        end
     end
 
     always @(*) begin
@@ -61,6 +66,8 @@ module control(
         alu_op = `ALU_ADD;
         reg_src = 2'b00;
         pc_src = 1'b0;
+        in_fetch = 1'b0;
+        in_memory = 1'b0;
 
         case(state)
             FETCH: begin
@@ -70,6 +77,8 @@ module control(
                 alu_src_a = 2'b01;
                 alu_src_b = 2'b10;
                 alu_op = `ALU_ADD;
+
+                in_fetch = 1'b1;
             end
             DECODE: begin
                 alu_src_a = 2'b10;
@@ -156,6 +165,7 @@ module control(
                 endcase
             end
             MEMORY: begin
+                in_memory = 1'b1;
                 if (opcode == `OP_STORE) mem_write = 1'b1;
             end
             WRITEBACK: begin

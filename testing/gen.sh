@@ -39,7 +39,7 @@ done
 find "$BUILD_DIR/bin" -type f | while read -r specific_binary; do
     one_binary=$(basename "$specific_binary")
 
-    timeout 1 spike --isa=RV32I -l "$specific_binary" \
+    timeout 1 spike --isa=RV32I -m0x80000000:0x1000,0x20000000:0x3E800 -l "$specific_binary" \
         &> "$BUILD_DIR/logs/$one_binary.log"
 done
 

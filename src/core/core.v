@@ -3,26 +3,30 @@
 module core(
     input clock,
     input reset,
+    input stall,
     
     /*Instruction memory port*/
     output [31:0]imem_address,
     input [31:0]imem_data,
+    output imem_req,
 
     /*Data memory port*/
     output [31:0]dmem_address,
     output [31:0]dmem_write_data,
     output dmem_write_enable,
+    output dmem_read_enable,
     output [3:0]dmem_byte_enable,
     input [31:0]dmem_read_data
 );
     
     wire ir_write; wire pc_write; wire reg_write; wire mem_write; wire ret_write;
     wire [1:0]alu_src_a; wire [1:0]alu_src_b; wire [3:0]alu_op; wire [1:0]reg_src;
-    wire [6:0]opcode; wire [2:0]func3; wire [6:0]func7; wire pc_src;
+    wire [6:0]opcode; wire [2:0]func3; wire [6:0]func7; wire pc_src; wire in_memory;
     reg alu_con;
     control control_unit(
         .clock(clock),
         .reset(reset),
+        .stall(stall),
         .opcode(opcode),
         .func3(func3),
         .func7(func7),
@@ -36,9 +40,11 @@ module core(
         .alu_src_b(alu_src_b),
         .alu_op(alu_op),
         .reg_src(reg_src),
-        .pc_src(pc_src)
+        .pc_src(pc_src),
+        .in_fetch(imem_req),
+        .in_memory(in_memory)
     );
-    
+
     wire [31:0]alu_output; 
     reg [31:0]alu_input_1; reg [31:0]alu_input_2;
     alu alu_unit(
@@ -52,7 +58,7 @@ module core(
     program_counter pc_unit(
         .reset(reset),
         .clock(clock),
-        .write_enable(pc_write),
+        .write_enable(pc_write & ~stall),
         .pc_data(pc_input),
         .pc_output(imem_address)
     );
@@ -61,7 +67,7 @@ module core(
     control_register ir(
         .clock(clock),
         .reset(reset),
-        .write_enable(ir_write),
+        .write_enable(ir_write & ~stall),
         .input_data(imem_data),
         .output_data(instruction)
     );
@@ -70,7 +76,7 @@ module core(
     control_register alu_out(
         .clock(clock),
         .reset(reset),
-        .write_enable(1'b1),
+        .write_enable(~stall),
         .input_data(alu_output),
         .output_data(alu_regout)
     );
@@ -79,7 +85,7 @@ module core(
     control_register reg_in(
         .clock(clock),
         .reset(reset),
-        .write_enable(1'b1),
+        .write_enable(~stall),
         .input_data(imem_address),
         .output_data(register_in)
     );
@@ -88,7 +94,7 @@ module core(
     control_register ret_addr(
         .clock(clock),
         .reset(reset),
-        .write_enable(ret_write),
+        .write_enable(ret_write & ~stall),
         .input_data(imem_address),
         .output_data(ret_addr_output)
     );
@@ -111,7 +117,7 @@ module core(
     regfile register_unit(
         .reset(reset),
         .clock(clock),
-        .write_enable(reg_write),
+        .write_enable(reg_write & ~stall),
         .read_1(rs1),
         .read_2(rs2),
         .write(rsd),
@@ -134,6 +140,7 @@ module core(
     );
 
     assign dmem_write_enable = mem_write;
+    assign dmem_read_enable = in_memory & ~mem_write;
     assign dmem_address = alu_regout;
     always@(*)begin
         pc_input = (pc_src) ? alu_regout : alu_output;

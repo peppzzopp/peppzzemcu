@@ -1,8 +1,4 @@
-module memory#(
-    parameter MEM_SIZE = 32'h00000400,
-    parameter IS_ROM = 0,
-    parameter BASE_ADDR = 32'h00000000
-)(
+module gpio(
     input clock,
     input reset,
     /*Write address*/
@@ -26,52 +22,36 @@ module memory#(
     output reg [31:0]rdata,
     output [1:0]rresp,
     output reg rvalid,
-    input rready
+    input rready,
+
+    output [5:0]led
 );
 
-    reg [31:0]mem_array [0:MEM_SIZE-1];
-
+    reg [5:0]memory;
+    
     assign waready = 1'b1;
     assign wdready = 1'b1;
     assign raready = 1'b1;
     assign backw = 2'b00;
     assign rresp = 2'b00;
-
-    wire [31:0]write_address; wire [31:0]read_address;
-    assign write_address = (waddr - BASE_ADDR) >> 2;
-    assign read_address = (raddr - BASE_ADDR) >> 2;
     
-    integer i;
-    initial begin
-    `ifndef SYNTHESIS
-        for(i=0; i<MEM_SIZE/4; i=i+1)begin
-            mem_array[i] = 32'h00000000;
-        end
-    `endif
-        if (IS_ROM == 1)begin
-            $readmemh("instruction_stream.hex", mem_array);
-        end
-    end
+    assign led = memory;
 
     always@(posedge clock)begin
         if(reset)begin
+            memory <= 6'b111111;
             bvalid <= 1'b0;
             rvalid <= 1'b0;
-        end
+        end 
         else begin
             if(wavalid && wdvalid)begin
-                if(wstrb[0])mem_array[write_address][7:0] <= wdata[7:0];
-                if(wstrb[1])mem_array[write_address][15:8] <= wdata[15:8];
-                if(wstrb[2])mem_array[write_address][23:16] <= wdata[23:16];
-                if(wstrb[3])mem_array[write_address][31:24] <= wdata[31:24];
-
+                memory <= wdata[5:0];
                 bvalid <= 1'b1;
             end else if(bready)begin
                 bvalid <= 1'b0;
             end
-
             if(ravalid)begin
-                rdata <= mem_array[read_address];
+                rdata <= 32'h00000000;
                 rvalid <= 1'b1;
             end else if(rready)begin
                 rvalid <= 1'b0;
