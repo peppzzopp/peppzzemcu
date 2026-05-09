@@ -22,18 +22,28 @@ module axi_master(
     input [31:0]rdata,
     input [1:0]rresp,
     input rvalid,
-    output reg rready
+    output reg rready,
+
+    input [63:0]mtime,
+    input timer_interrupt
 );
 
     wire [3:0]dmem_strb;
     wire [31:0]imem_address; wire [31:0]imem_data;
     wire [31:0]dmem_address; wire [31:0]dmem_read_data; wire [31:0]dmem_write_data;
     wire dmem_write_enable; wire dmem_read_enable; wire imem_req; wire stall;
+    
 
+    wire ext;
+    assign ext = 1'b0;
     core core_unit(
         .clock(clock),
         .reset(reset),
         .stall(stall),
+        .timer_interrupt(timer_interrupt),
+        .external_interrupt(ext),
+        .mcycle(mtime),
+
         .imem_address(imem_address),
         .imem_data(imem_data),
         .imem_req(imem_req),
@@ -74,7 +84,7 @@ module axi_master(
         if((state == FETCH_WAIT) && rvalid) imem_cap <= rdata;
         if((state == READ_WAIT) && rvalid) dmem_cap <= rdata;
     end
-
+    
     always@(*)begin
         waddr = 32'h00000000;
         wavalid = 1'b0;
@@ -85,6 +95,7 @@ module axi_master(
         raddr = 32'h00000000;
         ravalid = 1'b0;
         rready = 1'b0;
+        next_state = IDLE;
         
         case(state)
             IDLE:begin

@@ -4,6 +4,8 @@ building:
 	mkdir -p build
 
 synthesis: building
+	make all --directory=software/
+	cp software/instruction_stream.hex ./
 	yosys -p "read_verilog -I src/core src/core/*.v src/memory/*.v src/peripherals/*.v src/bus/*.v src/*.v; synth_gowin -top system -json build/cpu.json"
 
 route: building
@@ -16,4 +18,4 @@ flash: building
 	openFPGALoader -b tangnano9k -f build/cpu.fs
 
 clean: building
-	rm -rf build abc.history
+	rm -rf build abc.history instruction_stream.hex

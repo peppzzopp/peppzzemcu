@@ -45,4 +45,3 @@ module program_counter#(
     end
     assign pc_output = program_address;
 endmodule
-

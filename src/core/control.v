@@ -7,28 +7,39 @@ module control(
     input [6:0]opcode,
     input [2:0]func3,
     input [6:0]func7,
+    input [11:0]csr,
     input alu_con,
-    
+    input core_trap,
+   
+    output [2:0]current_state,
     output reg ir_write,
     output reg pc_write,
+    output reg pc_control,
     output reg reg_write,
     output reg mem_write,
     output reg ret_write,
+    output reg zicsr_write,
     
     output reg [1:0]alu_src_a, 
     output reg [1:0]alu_src_b,
     output reg [3:0]alu_op,
-    output reg [1:0]reg_src,
+    output reg [2:0]reg_src,
+    output reg [1:0]zicsr_src,
     output reg pc_src,
     output reg in_fetch,
-    output reg in_memory
+    output reg in_memory,
+    output reg sys_call,
+    output reg env_break,
+    output reg mret,
+    output reg not_supported_instruction,
+    output final_cycle
 );
 
     parameter FETCH = 3'b000, DECODE = 3'b001, EXECUTE = 3'b010, MEMORY = 3'b011, WRITEBACK = 3'b100;
     reg [2:0] state, next_state;
-
+    assign current_state = state;
     always @(posedge clock) begin
-        if (reset) state <= FETCH;
+        if (reset || core_trap) state <= FETCH;
         else begin
             if(!stall) state <= next_state;
         end
@@ -36,12 +47,12 @@ module control(
 
     always @(*) begin
         case(state)
-            FETCH:  next_state = DECODE;
+            FETCH: next_state = DECODE;
             DECODE: next_state = EXECUTE;
             EXECUTE: begin
                 if (opcode == `OP_LOAD || opcode == `OP_STORE)
                     next_state = MEMORY;
-                else if (opcode == `OP_BRANCH)
+                else if ((opcode == `OP_BRANCH) || ((opcode == `OP_SYSTEM) && (func3 == 3'b000)))
                     next_state = FETCH;
                 else
                     next_state = WRITEBACK;
@@ -54,25 +65,34 @@ module control(
             default: next_state = FETCH;
         endcase
     end
+    
+    assign final_cycle = (next_state == FETCH) & (state != FETCH) & ~core_trap;
 
     always @(*) begin
         ir_write = 1'b0;
         pc_write = 1'b0;
+        pc_control = 1'b0;
         reg_write = 1'b0;
         mem_write = 1'b0;
         ret_write = 1'b0;
+        zicsr_write = 1'b0;
         alu_src_a = 2'b00;
         alu_src_b = 2'b00;
         alu_op = `ALU_ADD;
-        reg_src = 2'b00;
+        reg_src = 3'b00;
         pc_src = 1'b0;
+        zicsr_src = 2'b00;
         in_fetch = 1'b0;
         in_memory = 1'b0;
-
+        sys_call = 1'b0;
+        env_break = 1'b0;
+        mret = 1'b0;
+        not_supported_instruction = 1'b0;
         case(state)
             FETCH: begin
                 ir_write = 1'b1;
                 pc_write = 1'b1;
+                pc_control = 1'b1;
                 ret_write = 1'b1;
                 alu_src_a = 2'b01;
                 alu_src_b = 2'b10;
@@ -162,6 +182,57 @@ module control(
                         alu_src_b = 2'b01;
                         alu_op = `ALU_ADD;
                     end
+                    `OP_SYSTEM:begin
+                        case(func3)
+                            3'b000:begin
+                                pc_write = 1'b1;
+                                case(csr)
+                                    12'h302: mret = 1'b1;
+                                    12'h001: env_break = 1'b1;
+                                    12'h000: sys_call = 1'b1;
+                                endcase
+                            end
+                            3'b001:begin
+                                zicsr_write = 1'b1;
+                                zicsr_src = 2'b00;
+                            end
+                            3'b010:begin
+                                zicsr_write = 1'b1;
+                                zicsr_src = 2'b10;
+                                alu_src_a = 2'b00;
+                                alu_src_b = 2'b11;
+                                alu_op = `ALU_OR;
+                            end
+                            3'b011:begin
+                                zicsr_write = 1'b1;
+                                zicsr_src = 2'b10;
+                                alu_src_a = 2'b00;
+                                alu_src_b = 2'b11;
+                                alu_op = `ALU_CLE;
+                            end
+                            3'b101:begin
+                                zicsr_write = 1'b1;
+                                zicsr_src = 2'b01;
+                            end
+                            3'b110:begin
+                                zicsr_write = 1'b1;
+                                zicsr_src = 2'b10;
+                                alu_src_a = 2'b11;
+                                alu_src_b = 2'b11;
+                                alu_op = `ALU_OR;
+                            end
+                            3'b111:begin
+                                zicsr_write = 1'b1;
+                                zicsr_src = 2'b10;
+                                alu_src_a = 2'b11;
+                                alu_src_b = 2'b11;
+                                alu_op = `ALU_CLE;
+                            end
+                        endcase
+                    end
+                    `OP_FENCE:begin
+                    end
+                    default: not_supported_instruction = 1'b1;
                 endcase
             end
             MEMORY: begin
@@ -170,11 +241,13 @@ module control(
             end
             WRITEBACK: begin
                 reg_write = 1'b1;
-                if(opcode == `OP_LOAD) reg_src = 2'b01;
-                else if((opcode == `OP_JAL) || (opcode == `OP_JALR)) reg_src = 2'b10;
-                else if(opcode == `OP_LUI) reg_src = 2'b11;
-                else reg_src = 2'b00;
+                if(opcode == `OP_LOAD) reg_src = 3'b001;
+                else if((opcode == `OP_JAL) || (opcode == `OP_JALR)) reg_src = 3'b010;
+                else if(opcode == `OP_LUI) reg_src = 3'b011;
+                else if(opcode == `OP_SYSTEM) reg_src = 3'b100;
+                else reg_src = 3'b000;
             end
+            default: not_supported_instruction = 1'b1;
         endcase
     end
 endmodule

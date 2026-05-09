@@ -101,7 +101,8 @@ module system(
         .slave2_rvalid(slave2_rvalid),
         .slave2_rready(slave2_rready)
     );
-
+    
+    wire [63:0]timer; wire timer_interrupt;
     axi_master master(
         .clock(clock),
         .reset(~reset),
@@ -121,10 +122,13 @@ module system(
         .rdata(master_rdata),
         .rresp(master_rresp),
         .rvalid(master_rvalid),
-        .rready(master_rready)
+        .rready(master_rready),
+
+        .mtime(timer),
+        .timer_interrupt(timer_interrupt)
     );
     
-    memory#(.MEM_SIZE(32'h00000400), .IS_ROM(1), .BASE_ADDR(32'h80000000)) rom(
+    memory#(.MEM_SIZE(32'h00001000), .IS_ROM(1), .BASE_ADDR(32'h80000000)) rom(
         .clock(clock),
         .reset(~reset),
         .waddr(slave0_waddr),
@@ -168,7 +172,7 @@ module system(
         .rready(slave1_rready)
     );
 
-    gpio led_unit(
+    mmio mmio_unit(
         .clock(clock),
         .reset(~reset),
         .waddr(slave2_waddr),
@@ -188,7 +192,10 @@ module system(
         .rresp(slave2_rresp),
         .rvalid(slave2_rvalid),
         .rready(slave2_rready),
+    
+        .timer_interrupt(timer_interrupt),
+        .mtime(timer),
 
-        .led(led)
+        .gpio_led(led)
     );
 endmodule

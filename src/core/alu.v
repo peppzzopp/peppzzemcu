@@ -47,8 +47,11 @@ module bitwise(
             2'b01:begin
                 output_logic = input_1 & input_2;
             end
-            default:begin
+            2'b10:begin
                 output_logic = input_1 | input_2;
+            end
+            default:begin
+                output_logic = ~input_1 & input_2;
             end
         endcase
     end
@@ -129,6 +132,10 @@ module alu(
             `ALU_SRA:begin
                 type_of_shift = 2'b10;
                 alu_output = shift_output;
+            end
+            `ALU_CLE:begin
+                type_of_operation = 2'b11;
+                alu_output = logic_output;
             end
             default:begin
                 alu_output = 32'h00000000;
