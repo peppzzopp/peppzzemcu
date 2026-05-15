@@ -23,7 +23,7 @@ A multicycle RV32I soft-core implementation in **verilog** targeting the **Sipee
 ## Demo
 
 - Startup and application code lives in `software/`.
-- The demo exercises timer interrupts and AXI peripheral integration.
+- It is a separate project at [@peppzzartos](https://github.com/peppzzopp/peppzzartos), a custom RTOS with a working port to PEPPZZEMCU.
 - Flash it to a Tang Nano 9K to see the LEDs blink.
 - For running different program, see [`software`](docs/software.md)
 
@@ -33,6 +33,11 @@ A multicycle RV32I soft-core implementation in **verilog** targeting the **Sipee
 - Constraints are currently provided only for the **Tang Nano 9K**.
 - The toolchain is entirely opensource **yosys**, **next-pnr** paired with **project apicula** and **openFPGALoader**.
 - See [`software`](docs/software.md) for more details.
+
+## Other Modes
+- Debug and performance measurement testbenches are also provided.
+- Run `make sim` to get the execution trace in **address_trace.txt** and open gtkwave for debugging.
+- Run `make perf` to get the trap overhead of [peppzzartos](https://github.com/peppzzopp/peppzzartos) in **performance_log.txt**
 
 ## Testing
 

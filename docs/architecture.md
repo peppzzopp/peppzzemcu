@@ -32,7 +32,7 @@ Mapped to the Tang Nano 9K's onboard LEDs. Exposes a data register and direction
 
 ### Timer
 - Implements the RISC-V machine timer registers `mtime` and `mtimecmp`. A timer interrupt is raised when `mtime >= mtimecmp`.
-- Software is responsible for increasing the `mtimecmp` approprietely.
+- Software is responsible for increasing the `mtimecmp` appropriately.
 
 ## Interrupt & Trap Handling
 

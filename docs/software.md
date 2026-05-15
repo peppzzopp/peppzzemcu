@@ -1,11 +1,18 @@
 # Software
 Running a program on the core requires firmware to be compiled into an instruction stream before synthesizing the design. This ensures it gets etched into instruction memory according to the linker script.
 
+## PEPPZZARTOS
+- It is a RTOS built from scratch for STM32F103RB microcontroller ported to also run on PEPPZZEMCU.
+- It is linked to the software directory and if the directory seems empty run
+```git submodule update --init --recursive```
+to get it.
+- Any other software written according to the guidelines can also be run on peppzzemcu.
+
 ## Writing Software
 It is recommended to separate application logic from startup logic.
 
 The startup code is responsible for:
-1. Initializing the `.text` and `.data` sections in memory
+1. Initializing the `.data` and `.bss` sections in memory
 2. Setting up the stack
 3. Populating `mtvec` with the trap handler address before enabling interrupts
 
@@ -25,4 +32,4 @@ make all
 ```
 This compiles the firmware, synthesizes the design with it etched into instruction memory, and flashes it to the connected FPGA. The directory structure must match the existing layout to remain compatible with the root Makefile.
 
-**To be compatible with the core building makefile, a makefile should be presented in the `software/` directory that compiles and produces the instruction_stream.hex file**
+**Makefile from the root should also be modified to meet the needs of the new software.**
